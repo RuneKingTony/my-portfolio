@@ -34,7 +34,7 @@ under `public/` at build time (e.g. `public/work/mbas.webp`).
 
 - `src/app/page.tsx` — the page
 - `src/components/NetworkMap.tsx` — the map (horizontal on desktop, vertical under 720px) and its key
-- `src/components/DepartureBoard.tsx` — the split-flap board (rows come from `departures` in network.ts)
+- `src/components/DepartureBoard.tsx` — the split-flap board (one row per project in network.ts, plus "your team")
 - `src/components/LineSection.tsx` — one line, drawn as a carriage strip map; `Reveal.tsx` rides it with the scroll
 - `src/app/globals.css` — tokens and styles
 - `PRODUCT.md`, `DESIGN.md` — product truth and the design system
