@@ -1,70 +1,40 @@
-# Getting Started with Create React App
+# Anthony Nkwa — portfolio
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A one-page portfolio drawn as a night transit map: each body of work is a line from data
+to interface, each station a real component, each interchange a technology the lines share.
+Text types itself like a terminal, a split-flap departure board flips into place, and a
+dashed red extension marches to the next stop. Everything settles to a still map under `prefers-reduced-motion`.
 
-## Available Scripts
+Next.js (App Router) + strict TypeScript, exported as static files. No CMS, no runtime
+secrets.
 
-In the project directory, you can run:
+## Run it
 
-### `npm start`
+```bash
+npm install
+npm run dev        # http://localhost:3000
+npm run typecheck
+npm run build      # static site in out/
+npm start          # serve out/ locally
+```
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+Deploy `out/` to any static host (Vercel, Netlify, Cloudflare Pages, S3).
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+## Edit the content
 
-### `npm test`
+Everything on the page comes from [`src/content/network.ts`](src/content/network.ts):
+lines, stations, interchanges and contact details. Map positions are in map units
+(`COL` for x, each line's `y`). A `route` gives a line's track as points (90° and 45°
+moves only), and a station off the main row takes its own `y`.
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+Screenshots are optional. A shot listed in `network.ts` ships only if its file exists
+under `public/` at build time (e.g. `public/work/mbas.webp`).
 
-### `npm run build`
+## Layout
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
-
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
-
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
-
-### `npm run eject`
-
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+- `src/app/page.tsx` — the page
+- `src/components/NetworkMap.tsx` — the map (horizontal on desktop, vertical under 720px) and its key
+- `src/components/DepartureBoard.tsx` — the split-flap board (one row per project in network.ts, plus "your team")
+- `src/components/LineSection.tsx` — one line, drawn as a carriage strip map; `Reveal.tsx` rides it with the scroll
+- `src/app/globals.css` — tokens and styles
+- `PRODUCT.md`, `DESIGN.md` — product truth and the design system

@@ -21,3 +21,52 @@
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+# env files (never commit secrets)
+.env
+.env*
+
+# next.js
+/.next/
+/out/
+next-env.d.ts
+*.tsbuildinfo
+
+# ===== Security: never commit secrets, AI agent files, or internal notes =====
+# Environment files (keep only the example template)
+.env
+.env.*
+!.env.example
+
+# Keys, certificates, credentials
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa*
+id_ed25519*
+credentials*.json
+*service-account*.json
+*serviceAccount*.json
+secrets.json
+secrets.yml
+secrets.yaml
+
+# AI agent config, skills and notes
+.claude/
+.agents/
+.agent/
+.cursor/
+.impeccable/
+.openspec/
+skills/
+CLAUDE.md
+AGENTS.md
+SKILL.md
+
+# Markdown docs/notes (README stays public)
+*.md
+!README.md
+!LICENSE.md
