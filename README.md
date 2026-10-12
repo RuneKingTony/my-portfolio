@@ -28,19 +28,39 @@ Deploy `out/` to any static host (Vercel, Netlify, Cloudflare Pages, S3).
 
 ## Edit the content
 
-Everything on the page comes from [`src/content/network.ts`](src/content/network.ts):
-lines, stations, interchanges and contact details. Map positions are in map units
-(`COL` for x, each line's `y`). A `route` gives a line's track as points (90° and 45°
-moves only), and a station off the main row takes its own `y`.
+Each line of work has its own file in [`src/content/lines/`](src/content/lines/): its
+stations, stack, summary, Experience entry and screenshots. The shapes are in
+[`src/content/types.ts`](src/content/types.ts), and
+[`src/content/network.ts`](src/content/network.ts) puts the lines together with the
+interchanges (shared tech) and the next stop. Contact details are in
+`src/content/contact.ts`.
 
-Screenshots live in `public/work/`. A shot listed in `network.ts` ships only if its file
+Map positions are in map units (`COL` in `src/content/map.ts` for x, each line's `y`).
+A `route` gives a line's track as points (90° and 45° moves only), and a station off
+the main row takes its own `y`.
+
+Screenshots live in `public/work/`. A shot listed in a line file ships only if its file
 exists there at build time (e.g. `public/work/mbas.webp`).
 
 ## Layout
 
-- `src/app/page.tsx` — the page
-- `src/components/NetworkMap.tsx` — the map (horizontal on desktop, vertical under 720px) and its key
-- `src/components/DepartureBoard.tsx` — the split-flap board (one row per project in network.ts, plus "your team")
-- `src/components/LineSection.tsx` — one line, drawn as a carriage strip map; `Reveal.tsx` rides it with the scroll
-- `src/components/GitHubProjects.tsx` — public repos, fetched at build time
-- `src/app/globals.css` — tokens and styles
+- `src/app/` — the root layout, `globals.css` (tokens, themes and base styles only) and
+  `page.tsx`, which only puts the sections in order
+- `src/sections/` — one file per page section (header, hero, about, experience,
+  projects, GitHub, contact, footer), each with its own `.css`
+- `src/features/` — the pieces the sections are built from, each a folder with its
+  components and their `.css`:
+  - `network-map/` — the map (horizontal on desktop, vertical under 720px) and its key
+  - `departure-board/` — the split-flap board (one row per line, plus "your team")
+  - `line-section/` — one line, drawn as a carriage strip map; `reveal.tsx` rides it
+    with the scroll
+  - `service-history/` — the Experience list
+  - `github/` — the profile card and public repos, fetched at build time
+  - `contact/` — the contact form and the mailto it builds
+  - `typewriter/` — text that types itself in
+  - `theme/` — the day/night switch
+- `src/content/` — everything the page says
+- `src/lib/` — dates, live-link checks and the in-view hook
+
+Files and folders are kebab-case, with named exports only (Next.js's own `layout.tsx`
+and `page.tsx` are the exceptions).

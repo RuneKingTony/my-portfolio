@@ -6,12 +6,14 @@ export function Dotted({ items }: { items: readonly string[] }) {
         <span key={item}>
           {i > 0 ? (
             <>
-              {" "}
-              <span className="sep" aria-hidden="true" />{" "}
+              {' '}
+              <span className="sep" aria-hidden="true" />{' '}
             </>
           ) : null}
           {item}
-          {i < items.length - 1 ? <span className="visually-hidden">, </span> : null}
+          {i < items.length - 1 ? (
+            <span className="visually-hidden">, </span>
+          ) : null}
         </span>
       ))}
     </>

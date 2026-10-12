@@ -10,9 +10,9 @@ import {
   type GitHubRepo,
   type RawRepo,
 } from './github-repos';
-import { publicLinks } from './links';
+import { publicLinks } from '@/lib/links';
 
-interface GitHubProfile {
+export interface GitHubProfile {
   login: string;
   name: string | null;
   avatarUrl: string;

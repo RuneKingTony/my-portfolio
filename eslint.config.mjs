@@ -59,6 +59,7 @@ const noDefaultExport = {
 };
 
 export default [
+  { linterOptions: { reportUnusedDisableDirectives: 'error' } },
   {
     ignores: [
       '.next/**',

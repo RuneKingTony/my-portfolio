@@ -1,6 +1,7 @@
 import { contact } from '@/content/contact';
-import type { GitHubRepo } from '@/lib/github-repos';
 import { monthYear } from '@/lib/dates';
+import type { GitHubRepo } from './github-repos';
+import './github-projects.css';
 
 /** The repos fetched when the site was built. A push rebuilds the site, which refreshes them. */
 export function GitHubProjects({ repos }: { repos: GitHubRepo[] }) {

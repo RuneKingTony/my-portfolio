@@ -1,0 +1,206 @@
+/* Outside the map, colour is only the project's dot: rails, bars and ticks are grey. */
+
+.history > li {
+  --line: var(--ink-3);
+}
+
+.service {
+  transition:
+    background-color 300ms var(--ease-out),
+    color 300ms var(--ease-out),
+    border-color 300ms var(--ease-out),
+    fill 300ms var(--ease-out);
+}
+
+.history {
+  margin: 0;
+  padding: 24px 0 0;
+  list-style: none;
+  display: grid;
+  gap: 10px;
+}
+
+.service {
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--ground);
+  overflow: hidden;
+}
+
+.service[open] {
+  border-color: var(--ink-3);
+}
+
+.service summary {
+  display: grid;
+  grid-template-columns: 170px minmax(150px, 220px) minmax(0, 1fr) auto 20px;
+  align-items: center;
+  gap: 12px 24px;
+  padding: 18px 20px 16px;
+  cursor: pointer;
+  list-style: none;
+  position: relative;
+}
+
+.service summary::-webkit-details-marker {
+  display: none;
+}
+
+/* The line colour runs along the top edge of an open row. */
+.service summary::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 0;
+  height: 4px;
+  background: var(--line);
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 500ms var(--ease-out);
+}
+
+.service[open] summary::before,
+.service summary:hover::before {
+  transform: scaleX(1);
+}
+
+.service-when {
+  font-weight: 600;
+  color: var(--ink-3);
+  font-size: 0.9375rem;
+}
+
+.service-line {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.service-name {
+  font-family: var(--display);
+  font-size: 1.625rem;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+  padding-top: 2px;
+}
+
+.service-title {
+  font-weight: 600;
+}
+
+.service-status {
+  padding: 4px 10px 2px;
+  border: 1px solid var(--rule);
+  border-radius: 12px;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+  white-space: nowrap;
+}
+
+.service-status[data-status='running'] {
+  color: var(--ink);
+  border-color: var(--ink-3);
+}
+
+.service-chevron {
+  width: 16px;
+  height: 16px;
+  fill: none;
+  stroke: var(--ink-2);
+  stroke-width: 2;
+  transition: transform 300ms var(--ease-out);
+}
+
+.service[open] .service-chevron {
+  transform: rotate(180deg);
+}
+
+.service-body {
+  padding: 0 20px 20px calc(170px + 24px + 20px);
+}
+
+.service-body ul {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: grid;
+  gap: 8px;
+  max-width: 72ch;
+  color: var(--ink-2);
+}
+
+.service-body li {
+  position: relative;
+  padding-left: 22px;
+}
+
+.service-body li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 0.6em;
+  width: 12px;
+  height: 4px;
+  background: var(--line);
+}
+
+.service-ride {
+  display: inline-block;
+  margin-top: 14px;
+  font-weight: 700;
+  font-size: 0.9375rem;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .service[open] .service-body {
+    animation: unfold 400ms var(--ease-out);
+  }
+}
+
+@keyframes unfold {
+  from {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+@media (max-width: 900px) {
+  .service summary {
+    grid-template-columns: minmax(0, 1fr) auto 20px;
+    grid-template-areas:
+      'when status chevron'
+      'line line line'
+      'title title title';
+    gap: 8px 12px;
+  }
+
+  .service-when {
+    grid-area: when;
+  }
+
+  .service-status {
+    grid-area: status;
+  }
+
+  .service-chevron {
+    grid-area: chevron;
+  }
+
+  .service-line {
+    grid-area: line;
+  }
+
+  .service-title {
+    grid-area: title;
+  }
+
+  .service-body {
+    padding-left: 20px;
+  }
+}

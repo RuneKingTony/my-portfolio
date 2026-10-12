@@ -1,4 +1,5 @@
 import { chronological, statusLabel } from '@/content/network';
+import './service-history.css';
 
 /** Experience: every role and project in the order it started, oldest first. Each row expands. */
 export function ServiceHistory() {

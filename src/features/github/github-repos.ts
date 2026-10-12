@@ -1,5 +1,5 @@
 // Turning GitHub's API response into the repos the site shows, at build time
-// (src/lib/github.ts).
+// (github.ts).
 
 import { contact } from '@/content/contact';
 
