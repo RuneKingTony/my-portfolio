@@ -63,4 +63,7 @@ exists there at build time (e.g. `public/work/mbas.webp`).
 - `src/lib/` — dates, live-link checks and the in-view hook
 
 Files and folders are kebab-case, with named exports only (Next.js's own `layout.tsx`
-and `page.tsx` are the exceptions).
+and `page.tsx` are the exceptions). Unit specs sit beside the code they test
+(`*.spec.ts`), and `e2e/` holds a Playwright smoke test of the built site. The full set of
+rules, and which check enforces each one, is in
+[`docs/conventions.md`](docs/conventions.md).

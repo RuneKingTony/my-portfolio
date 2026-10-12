@@ -17,8 +17,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "knip": "knip --no-config-hints",
-    "test": "vitest run --passWithNoTests",
-    "test:e2e": "playwright test --pass-with-no-tests",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
     "validate": "npm run format:check && npm run lint && npm run typecheck && npm run knip && npm test && npm run build && npm run test:e2e"
   },
   "dependencies": {
