@@ -6,16 +6,19 @@ const cache = new Map<string, Promise<boolean>>();
 
 async function check(url: string): Promise<boolean> {
   try {
-    const res = await fetch(url, { redirect: "follow", signal: AbortSignal.timeout(10000) });
+    const res = await fetch(url, {
+      redirect: 'follow',
+      signal: AbortSignal.timeout(10_000),
+    });
     if (!res.ok) return false;
     const host = new URL(res.url).hostname;
-    return host !== "vercel.com" && !host.endsWith(".vercel.com");
+    return host !== 'vercel.com' && !host.endsWith('.vercel.com');
   } catch {
     return false;
   }
 }
 
-export function isPublic(url: string): Promise<boolean> {
+function isPublic(url: string): Promise<boolean> {
   let pending = cache.get(url);
   if (!pending) {
     pending = check(url);
@@ -27,6 +30,6 @@ export function isPublic(url: string): Promise<boolean> {
 /** The subset of `urls` a visitor can open right now. */
 export async function publicLinks(urls: string[]): Promise<Set<string>> {
   const unique = [...new Set(urls)];
-  const results = await Promise.all(unique.map(isPublic));
-  return new Set(unique.filter((_, i) => results[i]));
+  const results = await Promise.all(unique.map((url) => isPublic(url)));
+  return new Set(unique.filter((_, i) => results[i] === true));
 }

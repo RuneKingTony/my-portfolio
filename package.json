@@ -9,6 +9,7 @@
   "scripts": {
     "prepare": "husky",
     "dev": "next dev",
+    "prebuild": "node -e \"require('node:fs').rmSync('.next/cache/fetch-cache',{recursive:true,force:true})\"",
     "build": "next build",
     "start": "serve out",
     "typecheck": "tsc --noEmit",

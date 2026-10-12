@@ -1,18 +1,23 @@
-import type { Line, Shot } from "@/content/network";
-import { Dotted } from "./Dotted";
-import { LineBadge } from "./LineBadge";
-import { Reveal } from "./Reveal";
+import type { Line, Shot } from '@/content/network';
+import { Dotted } from './Dotted';
+import { Reveal } from './Reveal';
 
-export function LineSection({ line, shots, live }: { line: Line; shots: Shot[]; live: Set<string> }) {
+export function LineSection({
+  line,
+  shots,
+  live,
+}: {
+  line: Line;
+  shots: Shot[];
+  live: Set<string>;
+}) {
   return (
     <article id={`line-${line.id}`} className="line-section">
       <header className="line-plate">
         <div className="line-bar">
-          <LineBadge line={line} size="lg" />
+          <span className="badge badge-lg">{line.code}</span>
         </div>
-        <h3 className="line-name">
-          {line.name}
-        </h3>
+        <h3 className="line-name">{line.name}</h3>
         <p className="line-role">{line.role}</p>
         <dl className="line-meta">
           <div>
@@ -36,8 +41,14 @@ export function LineSection({ line, shots, live }: { line: Line; shots: Shot[]; 
             <li
               key={s.label}
               className="stop"
-              data-kind={s.interchange ? "interchange" : s.terminus ? "terminus" : "station"}
-              style={{ ["--n" as string]: i }}
+              data-kind={
+                s.interchange
+                  ? 'interchange'
+                  : s.terminus
+                    ? 'terminus'
+                    : 'station'
+              }
+              style={{ ['--n' as string]: i }}
             >
               <span className="stop-mark" aria-hidden="true" />
               <h4 className="stop-name">{s.name ?? s.label}</h4>
@@ -47,7 +58,12 @@ export function LineSection({ line, shots, live }: { line: Line; shots: Shot[]; 
                   {s.links
                     .filter((l) => live.has(l.href))
                     .map((l) => (
-                      <a key={l.href} href={l.href} target="_blank" rel="noopener">
+                      <a
+                        key={l.href}
+                        href={l.href}
+                        target="_blank"
+                        rel="noopener"
+                      >
                         {l.label}
                       </a>
                     ))}
@@ -59,11 +75,16 @@ export function LineSection({ line, shots, live }: { line: Line; shots: Shot[]; 
       </Reveal>
 
       {shots.length > 0 ? (
-        <div className={shots.length === 1 ? "shots shots-one" : "shots"}>
+        <div className={shots.length === 1 ? 'shots shots-one' : 'shots'}>
           {shots.map((shot) => (
             <figure key={shot.src} className="shot">
               {/* Static export serves these as-is; sizes come from the screenshots themselves. */}
-              <img src={shot.src} alt={shot.alt} loading="lazy" decoding="async" />
+              <img
+                src={shot.src}
+                alt={shot.alt}
+                loading="lazy"
+                decoding="async"
+              />
               <figcaption>{shot.caption}</figcaption>
             </figure>
           ))}
