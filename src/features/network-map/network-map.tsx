@@ -1,7 +1,6 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { zones, type MapPoint } from '@/content/map';
 import {
   chronological,
   interchangeById,
@@ -10,222 +9,285 @@ import {
   lines,
   nextStop,
 } from '@/content/network';
-import type { Interchange, InterchangeId, Line, LineId } from '@/content/types';
+import type { Line, LineId } from '@/content/types';
 import { useInView } from '@/lib/use-in-view';
+import {
+  interchangeIsLit,
+  lineIsLit,
+  sameFocus,
+  type Focus,
+} from './map-focus';
+import {
+  describeNetwork,
+  mapShapes,
+  type Box,
+  type ExtensionShape,
+  type InterchangeShape,
+  type LineShape,
+  type MapShapes,
+  type Orientation,
+  type TextAt,
+} from './map-geometry';
 import './network-map.css';
 
-type Focus =
-  | { kind: 'line'; id: LineId }
-  | { kind: 'interchange'; id: InterchangeId }
-  | null;
-type Orientation = 'horizontal' | 'vertical';
-interface Box {
-  x: number;
-  y: number;
-  width: number;
-  height: number;
-}
-interface TextAt {
-  x: number;
-  y: number;
-  anchor?: 'start' | 'middle' | 'end';
+const network = { lines, interchanges, nextStop };
+// The content is fixed at build time, so the shapes are worked out once.
+const SHAPES: Record<Orientation, MapShapes> = {
+  horizontal: mapShapes(network, 'horizontal'),
+  vertical: mapShapes(network, 'vertical'),
+};
+const { title, description } = describeNetwork(network);
+
+interface DrawKey {
+  id: LineId | null;
+  n: number;
 }
 
-// The network is authored once, in horizontal map units. The vertical map (phones)
-// is the same network turned a quarter: one uniform scale keeps every 45° move at 45°.
-const NETWORK_TOP = 40;
-const NETWORK_BOTTOM = 562;
-const SEPARATOR_Y = 588;
-const V_SCALE = 0.5;
-const V_BOT_X = 374;
-const V_SEPARATOR_X = 346;
+/** The map's highlight: a locked choice from the key, previewed by hovering over it. */
+function useMapFocus() {
+  const [locked, setLocked] = useState<Focus>(null);
+  const [preview, setPreview] = useState<Focus>(null);
+  const [drawKey, setDrawKey] = useState<DrawKey>({ id: null, n: 0 });
 
-/** Everything that differs between the two orientations, in one place. */
-interface Geometry {
-  viewBox: string;
-  width: number;
-  height: number;
-  gridStep: number;
-  project: (line: LineId, point: MapPoint) => MapPoint;
-  tick: (point: MapPoint, terminus: boolean) => Box;
-  /** Where a stop's name goes, or null when the orientation has no room for names. */
-  stopLabel: (point: MapPoint, terminus: boolean) => TextAt | null;
-  badge: (start: MapPoint) => { pill: Box; code: TextAt; name: TextAt | null };
-  interchange: (points: MapPoint[]) => { capsule: Box; name: TextAt };
-  zone: (
-    zone: (typeof zones)[number],
-    index: number
-  ) => { band: Box; name: TextAt; text: string };
-  separator: { from: MapPoint; to: MapPoint; note: TextAt & { text: string } };
-  extensionEnd: (end: MapPoint) => { tick: Box; label: TextAt; text: string };
+  const toggle = (next: Focus) => {
+    const turningOff = sameFocus(locked, next);
+    setLocked(turningOff ? null : next);
+    setPreview(null);
+    // Redraw the isolated line's stroke so the eye follows it along its route.
+    if (!turningOff && next?.kind === 'line')
+      setDrawKey((k) => ({ id: next.id, n: k.n + 1 }));
+  };
+
+  return { focus: preview ?? locked, locked, toggle, setPreview, drawKey };
 }
 
-const horizontal: Geometry = {
-  viewBox: '0 0 1440 712',
-  width: 1440,
-  height: 712,
-  gridStep: 40,
-  project: (_line, point) => point,
-  tick: ([x, y], terminus) =>
-    terminus
-      ? { x: x - 3, y: y - 15, width: 6, height: 30 }
-      : { x: x - 3, y: y + 4, width: 6, height: 10 },
-  stopLabel: ([x, y], terminus) => ({
-    x,
-    y: y + (terminus ? 36 : 32),
-    anchor: 'middle',
-  }),
-  badge: ([x, y]) => ({
-    pill: { x: x - 42, y: y - 11, width: 40, height: 22 },
-    code: { x: x - 22, y: y + 5, anchor: 'middle' },
-    name: { x: x - 50, y: y + 5, anchor: 'end' },
-  }),
-  interchange: (points) => {
-    const [x] = points[0] ?? [0, 0];
-    const top = Math.min(...points.map(([, y]) => y));
-    const bottom = Math.max(...points.map(([, y]) => y));
-    return {
-      capsule: { x: x - 14, y: top - 14, width: 28, height: bottom - top + 28 },
-      name: { x, y: top - 26, anchor: 'middle' },
-    };
-  },
-  zone: (zone, index) => ({
-    band: {
-      x: zone.from,
-      y: NETWORK_TOP,
-      width: zone.to - zone.from,
-      height: NETWORK_BOTTOM - NETWORK_TOP,
-    },
-    name: { x: zone.from + 12, y: NETWORK_TOP - 14 },
-    text: `${index + 1} · ${zone.name}`,
-  }),
-  separator: {
-    from: [40, SEPARATOR_Y],
-    to: [1400, SEPARATOR_Y],
-    note: {
-      x: 1400,
-      y: SEPARATOR_Y + 22,
-      anchor: 'end',
-      text: 'Not a web app, so it sits outside the zones: these stops are the steps I took, in order',
-    },
-  },
-  extensionEnd: ([x, y]) => ({
-    tick: { x: x - 3, y: y - 15, width: 6, height: 30 },
-    label: { x, y: y + 36, anchor: 'middle' },
-    text: nextStop.label,
-  }),
-};
+export function NetworkMap() {
+  const networkRef = useRef<HTMLDivElement>(null);
+  // The network draws itself in again on every visit.
+  const inView = useInView(networkRef, 0.2);
+  const { focus, locked, toggle, setPreview, drawKey } = useMapFocus();
 
-const vertical: Geometry = {
-  viewBox: '0 0 400 700',
-  width: 400,
-  height: 700,
-  gridStep: 25,
-  project: (line, [x, y]) => [
-    line === 'mt5' ? V_BOT_X : 130 + (y - 120) * V_SCALE,
-    (x - 100) * V_SCALE,
-  ],
-  tick: ([x, y], terminus) =>
-    terminus
-      ? { x: x - 13, y: y - 3, width: 26, height: 6 }
-      : { x: x + 4, y: y - 3, width: 8, height: 6 },
-  stopLabel: () => null,
-  badge: ([x, y]) => ({
-    pill: { x: x - 20, y: y - 24, width: 40, height: 22 },
-    code: { x, y: y - 8, anchor: 'middle' },
-    name: null,
-  }),
-  interchange: (points) => {
-    const [, y] = points[0] ?? [0, 0];
-    const left = Math.min(...points.map(([x]) => x));
-    const right = Math.max(...points.map(([x]) => x));
-    return {
-      capsule: {
-        x: left - 13,
-        y: y - 13,
-        width: right - left + 26,
-        height: 26,
-      },
-      name: { x: left - 22, y: y + 5, anchor: 'end' },
-    };
-  },
-  zone: (zone, index) => {
-    const top = (zone.from - 100) * V_SCALE;
-    return {
-      band: {
-        x: 0,
-        y: top,
-        width: V_SEPARATOR_X - 10,
-        height: (zone.to - zone.from) * V_SCALE,
-      },
-      // Names sit just above their band so they never meet an interchange name inside it.
-      name: { x: 8, y: index === 0 ? top + 16 : top - 6 },
-      text: zone.name,
-    };
-  },
-  separator: {
-    from: [V_SEPARATOR_X, 8],
-    to: [V_SEPARATOR_X, 692],
-    note: { x: V_BOT_X, y: 692, anchor: 'middle', text: 'MQL5' },
-  },
-  extensionEnd: ([x, y]) => ({
-    tick: { x: x - 13, y: y - 3, width: 26, height: 6 },
-    label: { x, y: y + 22, anchor: 'middle' },
-    text: 'Your team',
-  }),
-};
+  return (
+    <div
+      className="network"
+      ref={networkRef}
+      data-inview={inView ? 'true' : 'false'}
+    >
+      <p className="map-guide">
+        Each coloured line is one project. Follow it from data to screens.
+        Shared tools sit where lines cross.
+      </p>
+      <MapSvg orientation="horizontal" focus={focus} drawKey={drawKey} />
+      <MapSvg orientation="vertical" focus={focus} drawKey={drawKey} />
+      <div className="map-key">
+        <LineKey locked={locked} onToggle={toggle} onPreview={setPreview} />
+        <InterchangeKey
+          locked={locked}
+          onToggle={toggle}
+          onPreview={setPreview}
+        />
+      </div>
+      <p className="map-caption" aria-live="polite">
+        <Caption focus={focus} />
+      </p>
+    </div>
+  );
+}
 
-const GEOMETRY: Record<Orientation, Geometry> = { horizontal, vertical };
+function MapSvg({
+  orientation,
+  focus,
+  drawKey,
+}: {
+  orientation: Orientation;
+  focus: Focus;
+  drawKey: DrawKey;
+}) {
+  const shapes = SHAPES[orientation];
+  const titleId = `map-title-${orientation}`;
+  const descId = `map-desc-${orientation}`;
 
-/** An SVG path through the given points. */
-const toPath = (points: MapPoint[]) =>
-  points.map(([x, y], i) => `${i === 0 ? 'M' : 'L'} ${x} ${y}`).join(' ');
+  return (
+    <svg
+      className={`map map-${orientation}`}
+      viewBox={shapes.viewBox}
+      role="img"
+      aria-labelledby={`${titleId} ${descId}`}
+      data-focused={focus ? 'true' : 'false'}
+    >
+      <title id={titleId}>{title}</title>
+      <desc id={descId}>{description}</desc>
+      <MapBackdrop orientation={orientation} shapes={shapes} />
+      {shapes.lines.map((shape) => (
+        <MapLine
+          key={shape.line.id}
+          shape={shape}
+          lit={lineIsLit(focus, shape.line.id)}
+          drawKey={drawKey.id === shape.line.id ? drawKey.n : 0}
+        />
+      ))}
+      {shapes.extension ? <Extension shape={shapes.extension} /> : null}
+      {shapes.interchanges.map((shape) => (
+        <MapInterchange
+          key={shape.interchange.id}
+          shape={shape}
+          lit={interchangeIsLit(focus, shape.interchange)}
+        />
+      ))}
+    </svg>
+  );
+}
 
-const routeOf = (line: Line): MapPoint[] => {
-  if (line.route) return line.route;
-  const first = line.stations[0];
-  const last = line.stations[line.stations.length - 1];
-  return first && last
-    ? [
-        [first.x - 20, line.y],
-        [last.x, line.y],
-      ]
-    : [];
-};
+/** The zones, the grid and the separator: everything under the lines. */
+function MapBackdrop({
+  orientation,
+  shapes,
+}: {
+  orientation: Orientation;
+  shapes: MapShapes;
+}) {
+  const { from, to, note } = shapes.separator;
+  return (
+    <>
+      {shapes.zones.map((zone) => (
+        <g key={zone.key}>
+          <title>{zone.title}</title>
+          <Rect
+            box={zone.band}
+            className={zone.alt ? 'map-zone map-zone-alt' : 'map-zone'}
+          />
+          <Label
+            at={zone.label.at}
+            text={zone.label.text}
+            className="map-zone-name"
+          />
+        </g>
+      ))}
+      <Grid id={`grid-${orientation}`} shapes={shapes} />
+      <line
+        className="map-separator"
+        x1={from[0]}
+        y1={from[1]}
+        x2={to[0]}
+        y2={to[1]}
+      />
+      <Label at={note.at} text={note.text} className="map-zone-name" />
+    </>
+  );
+}
 
-const lineIsLit = (focus: Focus, id: LineId): boolean => {
-  if (!focus) return true;
-  if (focus.kind === 'line') return focus.id === id;
-  return interchangeById(focus.id).lines.includes(id);
-};
+function Grid({ id, shapes }: { id: string; shapes: MapShapes }) {
+  const step = shapes.gridStep;
+  return (
+    <>
+      <defs>
+        <pattern
+          id={id}
+          width={step}
+          height={step}
+          patternUnits="userSpaceOnUse"
+        >
+          <path
+            d={`M ${step} 0 V ${step} M 0 ${step} H ${step}`}
+            className="map-grid-rule"
+          />
+        </pattern>
+      </defs>
+      <rect width={shapes.width} height={shapes.height} fill={`url(#${id})`} />
+    </>
+  );
+}
 
-const interchangeIsLit = (focus: Focus, interchange: Interchange): boolean => {
-  if (!focus) return true;
-  if (focus.kind === 'interchange') return focus.id === interchange.id;
-  return interchange.lines.includes(focus.id);
-};
+function MapLine({
+  shape,
+  lit,
+  drawKey,
+}: {
+  shape: LineShape;
+  lit: boolean;
+  drawKey: number;
+}) {
+  const { line, badge } = shape;
+  return (
+    <g
+      className="map-line"
+      data-lit={lit}
+      style={{
+        ['--line' as string]: line.color,
+        ['--i' as string]: shape.index,
+      }}
+    >
+      <path
+        key={drawKey}
+        className="map-stroke"
+        d={shape.path}
+        pathLength={1}
+      />
+      {shape.ticks.map((tick) => (
+        <Rect key={tick.key} box={tick.box} className="map-tick" />
+      ))}
+      {shape.stopLabels.map((label) => (
+        <Label key={label.key} at={label.at} text={label.text} />
+      ))}
+      <a
+        href={`#line-${line.id}`}
+        className="map-line-link"
+        aria-label={`${line.name}: see the details`}
+      >
+        <Rect box={badge.pill} className="map-badge" rx={11} />
+        <text
+          className="map-badge-code"
+          x={badge.code.x}
+          y={badge.code.y}
+          textAnchor={badge.code.anchor}
+          style={{ fill: line.ink }}
+        >
+          {line.code}
+        </text>
+        {badge.name ? (
+          <Label at={badge.name} text={line.name} className="map-line-name" />
+        ) : null}
+      </a>
+    </g>
+  );
+}
 
-/** A period in words, for sentences: "Aug 2024 to Aug 2026". */
-const periodInWords = (line: Line): string => line.period.replace('→', 'to');
+function Extension({ shape }: { shape: ExtensionShape }) {
+  return (
+    <a
+      href="#contact"
+      className="map-extension"
+      aria-label="Next stop: your team. Get in touch"
+    >
+      <path className="ext-stroke" d={shape.path} />
+      <Rect box={shape.tick} className="ext-tick" />
+      <Label
+        at={shape.label.at}
+        text={shape.label.text}
+        className="map-label ext-label"
+      />
+    </a>
+  );
+}
 
-const sameFocus = (a: Focus, b: Focus) =>
-  a?.kind === b?.kind && a?.id === b?.id;
-
-const listNames = (names: string[]) =>
-  names.length < 2
-    ? names.join('')
-    : `${names.slice(0, -1).join(', ')} and ${names[names.length - 1]}`;
-
-/** What a screen reader hears instead of the map, written from the data so it can't drift. */
-const description = [
-  `${lines.length - 1} coloured lines, one per project, run from data to screens.`,
-  ...interchanges.map(
-    (i) =>
-      `${listNames(i.lines.map((id) => lineById(id).name))} share ${i.name}.`
-  ),
-  'A dashed line leads to the next stop: your team.',
-  `${lineById('mt5').name} sits on its own, outside the zones.`,
-].join(' ');
+function MapInterchange({
+  shape,
+  lit,
+}: {
+  shape: InterchangeShape;
+  lit: boolean;
+}) {
+  return (
+    <g className="map-interchange" data-lit={lit}>
+      <Rect box={shape.capsule} rx={shape.radius} />
+      <Label
+        at={shape.name}
+        text={shape.interchange.name}
+        className="map-ix-name"
+      />
+    </g>
+  );
+}
 
 function Label({
   at,
@@ -252,7 +314,7 @@ function Label({
   );
 }
 
-const Rect = ({
+function Rect({
   box,
   className,
   rx,
@@ -260,220 +322,88 @@ const Rect = ({
   box: Box;
   className?: string;
   rx?: number;
-}) => (
-  <rect
-    className={className}
-    x={box.x}
-    y={box.y}
-    width={box.width}
-    height={box.height}
-    rx={rx}
-  />
-);
-
-function Extension({ geo }: { geo: Geometry }) {
-  const points = nextStop.route.map((p) => geo.project(nextStop.from, p));
-  const end = points[points.length - 1];
-  if (!end) return null;
-  const { tick, label, text } = geo.extensionEnd(end);
-  return (
-    <a
-      href="#contact"
-      className="map-extension"
-      aria-label="Next stop: your team. Get in touch"
-    >
-      <path className="ext-stroke" d={toPath(points)} />
-      <Rect box={tick} className="ext-tick" />
-      <Label at={label} text={text} className="map-label ext-label" />
-    </a>
-  );
-}
-
-function MapLine({
-  geo,
-  line,
-  index,
-  lit,
-  drawKey,
-}: {
-  geo: Geometry;
-  line: Line;
-  index: number;
-  lit: boolean;
-  drawKey: number;
 }) {
-  const route = routeOf(line).map((p) => geo.project(line.id, p));
-  const start = route[0];
-  if (!start) return null;
-  const badge = geo.badge(start);
-  const stops = line.stations
-    .filter((s) => !s.interchange)
-    .map((s) => ({
-      station: s,
-      at: geo.project(line.id, [s.x, s.y ?? line.y]),
-    }));
-
   return (
-    <g
-      className="map-line"
-      data-lit={lit}
-      style={{ ['--line' as string]: line.color, ['--i' as string]: index }}
+    <rect
+      className={className}
+      x={box.x}
+      y={box.y}
+      width={box.width}
+      height={box.height}
+      rx={rx}
+    />
+  );
+}
+
+interface KeyProps {
+  locked: Focus;
+  onToggle: (next: Focus) => void;
+  onPreview: (next: Focus) => void;
+}
+
+function LineKey({ locked, onToggle, onPreview }: KeyProps) {
+  return (
+    <div
+      className="map-key-group"
+      role="group"
+      aria-label="Highlight a project"
     >
-      <path
-        key={drawKey}
-        className="map-stroke"
-        d={toPath(route)}
-        pathLength={1}
-      />
-      {stops.map(({ station, at }) => (
-        <Rect
-          key={station.label}
-          box={geo.tick(at, Boolean(station.terminus))}
-          className="map-tick"
-        />
-      ))}
-      {stops.map(({ station, at }) => {
-        const label = geo.stopLabel(at, Boolean(station.terminus));
-        return label ? (
-          <Label key={station.label} at={label} text={station.label} />
-        ) : null;
-      })}
-      <a
-        href={`#line-${line.id}`}
-        className="map-line-link"
-        aria-label={`${line.name}: see the details`}
-      >
-        <Rect box={badge.pill} className="map-badge" rx={11} />
-        <text
-          className="map-badge-code"
-          x={badge.code.x}
-          y={badge.code.y}
-          textAnchor={badge.code.anchor}
-          style={{ fill: line.ink }}
-        >
-          {line.code}
-        </text>
-        {badge.name ? (
-          <Label at={badge.name} text={line.name} className="map-line-name" />
-        ) : null}
-      </a>
-    </g>
-  );
-}
-
-function MapInterchange({
-  geo,
-  interchange,
-  lit,
-}: {
-  geo: Geometry;
-  interchange: Interchange;
-  lit: boolean;
-}) {
-  const points = interchange.lines.map((id) =>
-    geo.project(id, [interchange.x, lineById(id).y])
-  );
-  const { capsule, name } = geo.interchange(points);
-  const radius = Math.min(capsule.width, capsule.height) / 2;
-  return (
-    <g className="map-interchange" data-lit={lit}>
-      <Rect box={capsule} rx={radius} />
-      <Label at={name} text={interchange.name} className="map-ix-name" />
-    </g>
-  );
-}
-
-function Grid({ id, geo }: { id: string; geo: Geometry }) {
-  const step = geo.gridStep;
-  return (
-    <>
-      <defs>
-        <pattern
-          id={id}
-          width={step}
-          height={step}
-          patternUnits="userSpaceOnUse"
-        >
-          <path
-            d={`M ${step} 0 V ${step} M 0 ${step} H ${step}`}
-            className="map-grid-rule"
-          />
-        </pattern>
-      </defs>
-      <rect width={geo.width} height={geo.height} fill={`url(#${id})`} />
-    </>
-  );
-}
-
-function MapSvg({
-  orientation,
-  focus,
-  drawKey,
-}: {
-  orientation: Orientation;
-  focus: Focus;
-  drawKey: { id: LineId | null; n: number };
-}) {
-  const geo = GEOMETRY[orientation];
-  const keyFor = (id: LineId) => (drawKey.id === id ? drawKey.n : 0);
-  const titleId = `map-title-${orientation}`;
-  const descId = `map-desc-${orientation}`;
-  const { from, to, note } = geo.separator;
-
-  return (
-    <svg
-      className={`map map-${orientation}`}
-      viewBox={geo.viewBox}
-      role="img"
-      aria-labelledby={`${titleId} ${descId}`}
-      data-focused={focus ? 'true' : 'false'}
-    >
-      <title id={titleId}>{`The network: ${lines.length} lines of work`}</title>
-      <desc id={descId}>{description}</desc>
-
-      {zones.map((zone, i) => {
-        const { band, name, text } = geo.zone(zone, i);
-        return (
-          <g key={zone.name}>
-            <title>{`${zone.name}: ${zone.means}`}</title>
-            <Rect
-              box={band}
-              className={i % 2 === 0 ? 'map-zone' : 'map-zone map-zone-alt'}
-            />
-            <Label at={name} text={text} className="map-zone-name" />
-          </g>
-        );
-      })}
-      <Grid id={`grid-${orientation}`} geo={geo} />
-      <line
-        className="map-separator"
-        x1={from[0]}
-        y1={from[1]}
-        x2={to[0]}
-        y2={to[1]}
-      />
-      <Label at={note} text={note.text} className="map-zone-name" />
-
-      {lines.map((line, i) => (
-        <MapLine
+      {chronological().map((line) => (
+        <button
           key={line.id}
-          geo={geo}
-          line={line}
-          index={i}
-          lit={lineIsLit(focus, line.id)}
-          drawKey={keyFor(line.id)}
-        />
+          type="button"
+          className="key-line"
+          style={{ ['--line' as string]: line.color }}
+          aria-pressed={locked?.kind === 'line' && locked.id === line.id}
+          onClick={() => {
+            onToggle({ kind: 'line', id: line.id });
+          }}
+          onPointerEnter={(e) => {
+            if (e.pointerType === 'mouse')
+              onPreview({ kind: 'line', id: line.id });
+          }}
+          onPointerLeave={() => {
+            onPreview(null);
+          }}
+        >
+          <span className="key-swatch" aria-hidden="true" />
+          {line.name}
+        </button>
       ))}
-      <Extension geo={geo} />
-      {interchanges.map((interchange) => (
-        <MapInterchange
-          key={interchange.id}
-          geo={geo}
-          interchange={interchange}
-          lit={interchangeIsLit(focus, interchange)}
-        />
+    </div>
+  );
+}
+
+function InterchangeKey({ locked, onToggle, onPreview }: KeyProps) {
+  return (
+    <div
+      className="map-key-group"
+      role="group"
+      aria-label="Highlight a shared technology"
+    >
+      <span className="key-heading">Shared tech</span>
+      {interchanges.map(({ id, name }) => (
+        <button
+          key={id}
+          type="button"
+          className="key-ix"
+          aria-pressed={locked?.kind === 'interchange' && locked.id === id}
+          onClick={() => {
+            onToggle({ kind: 'interchange', id });
+          }}
+          onPointerEnter={(e) => {
+            if (e.pointerType === 'mouse')
+              onPreview({ kind: 'interchange', id });
+          }}
+          onPointerLeave={() => {
+            onPreview(null);
+          }}
+        >
+          <ChangeGlyph />
+          {name}
+        </button>
       ))}
-    </svg>
+    </div>
   );
 }
 
@@ -486,115 +416,27 @@ function ChangeGlyph() {
   );
 }
 
-export function NetworkMap() {
-  const [locked, setLocked] = useState<Focus>(null);
-  const [preview, setPreview] = useState<Focus>(null);
-  const focus = preview ?? locked;
-  const networkRef = useRef<HTMLDivElement>(null);
-  // The network draws itself in again on every visit.
-  const inView = useInView(networkRef, 0.2);
-  const [drawKey, setDrawKey] = useState<{ id: LineId | null; n: number }>({
-    id: null,
-    n: 0,
-  });
+/** A period in words, for sentences: "Aug 2024 to Aug 2026". */
+const periodInWords = (line: Line): string => line.period.replace('→', 'to');
 
-  const toggle = (next: Focus) => {
-    const turningOff = sameFocus(locked, next);
-    setLocked(turningOff ? null : next);
-    setPreview(null);
-    // Redraw the isolated line's stroke so the eye follows it along its route.
-    if (!turningOff && next?.kind === 'line')
-      setDrawKey((k) => ({ id: next.id, n: k.n + 1 }));
-  };
-
-  const focusedLine = focus?.kind === 'line' ? lineById(focus.id) : null;
-  const focusedInterchange =
-    focus?.kind === 'interchange' ? interchangeById(focus.id) : null;
-
-  return (
-    <div
-      className="network"
-      ref={networkRef}
-      data-inview={inView ? 'true' : 'false'}
-    >
-      <p className="map-guide">
-        Each coloured line is one project. Follow it from data to screens.
-        Shared tools sit where lines cross.
-      </p>
-      <MapSvg orientation="horizontal" focus={focus} drawKey={drawKey} />
-      <MapSvg orientation="vertical" focus={focus} drawKey={drawKey} />
-
-      <div className="map-key">
-        <div
-          className="map-key-group"
-          role="group"
-          aria-label="Highlight a project"
-        >
-          {chronological().map((line) => (
-            <button
-              key={line.id}
-              type="button"
-              className="key-line"
-              style={{ ['--line' as string]: line.color }}
-              aria-pressed={locked?.kind === 'line' && locked.id === line.id}
-              onClick={() => toggle({ kind: 'line', id: line.id })}
-              onPointerEnter={(e) =>
-                e.pointerType === 'mouse' &&
-                setPreview({ kind: 'line', id: line.id })
-              }
-              onPointerLeave={() => setPreview(null)}
-            >
-              <span className="key-swatch" aria-hidden="true" />
-              {line.name}
-            </button>
-          ))}
-        </div>
-        <div
-          className="map-key-group"
-          role="group"
-          aria-label="Highlight a shared technology"
-        >
-          <span className="key-heading">Shared tech</span>
-          {interchanges.map((interchange) => (
-            <button
-              key={interchange.id}
-              type="button"
-              className="key-ix"
-              aria-pressed={
-                locked?.kind === 'interchange' && locked.id === interchange.id
-              }
-              onClick={() =>
-                toggle({ kind: 'interchange', id: interchange.id })
-              }
-              onPointerEnter={(e) =>
-                e.pointerType === 'mouse' &&
-                setPreview({ kind: 'interchange', id: interchange.id })
-              }
-              onPointerLeave={() => setPreview(null)}
-            >
-              <ChangeGlyph />
-              {interchange.name}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      <p className="map-caption" aria-live="polite">
-        {focusedLine ? (
-          <>
-            <strong>{focusedLine.name}.</strong> {focusedLine.role},{' '}
-            {periodInWords(focusedLine)}.{' '}
-            <a href={`#line-${focusedLine.id}`}>See the details</a>
-          </>
-        ) : focusedInterchange ? (
-          <>
-            <strong>{focusedInterchange.name}.</strong>{' '}
-            {focusedInterchange.note}
-          </>
-        ) : (
-          <>Tap a project or a technology to highlight it on the map.</>
-        )}
-      </p>
-    </div>
-  );
+/** What the highlight is, in a sentence under the map. */
+function Caption({ focus }: { focus: Focus }) {
+  if (focus?.kind === 'line') {
+    const line = lineById(focus.id);
+    return (
+      <>
+        <strong>{line.name}.</strong> {line.role}, {periodInWords(line)}.{' '}
+        <a href={`#line-${line.id}`}>See the details</a>
+      </>
+    );
+  }
+  if (focus?.kind === 'interchange') {
+    const interchange = interchangeById(focus.id);
+    return (
+      <>
+        <strong>{interchange.name}.</strong> {interchange.note}
+      </>
+    );
+  }
+  return <>Tap a project or a technology to highlight it on the map.</>;
 }
