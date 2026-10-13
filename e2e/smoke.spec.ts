@@ -17,7 +17,7 @@ test('every section renders, the theme toggles and the console stays clean', asy
     page.getByRole('heading', { level: 1, name: 'Anthony Nkwa' })
   ).toBeVisible();
   await expect(page.getByRole('figure', { name: 'Departures' })).toBeVisible();
-  await expect(page.locator('.map-horizontal')).toBeVisible();
+  await expect(page.locator('.map')).toBeVisible();
   for (const name of [
     'About',
     'Experience',
