@@ -5,7 +5,6 @@ import type { Line } from '@/content/types';
 import { describeNetwork, mapShapes } from './map-geometry';
 
 const network = { lines, interchanges, nextStop };
-const orientations = ['horizontal', 'vertical'] as const;
 
 /** The corner points of an SVG path made of M and L commands. */
 const pointsOf = (path: string): MapPoint[] =>
@@ -39,8 +38,8 @@ const line = (overrides: Partial<Line>): Line => ({
   ...overrides,
 });
 
-describe.each(orientations)('mapShapes (%s)', (orientation) => {
-  const shapes = mapShapes(network, orientation);
+describe('mapShapes', () => {
+  const shapes = mapShapes(network);
 
   it('draws every line, in network order', () => {
     expect(shapes.lines.map((s) => s.line.id)).toStrictEqual(
@@ -83,24 +82,19 @@ describe.each(orientations)('mapShapes (%s)', (orientation) => {
 
   it('ends the dashed extension at the next stop', () => {
     expect(shapes.extension?.path).toMatch(/^M /);
-    expect(shapes.extension?.label.text).toBe(
-      orientation === 'horizontal' ? nextStop.label : 'Your team'
-    );
+    expect(shapes.extension?.label.text).toBe(nextStop.label);
   });
-});
 
-describe('mapShapes', () => {
-  it('names stops and lines on the wide map only', () => {
-    const wide = mapShapes(network, 'horizontal');
-    const tall = mapShapes(network, 'vertical');
-    expect(wide.lines.every((s) => s.badge.name !== null)).toBe(true);
-    expect(wide.lines.flatMap((s) => s.stopLabels)).not.toHaveLength(0);
-    expect(tall.lines.every((s) => s.badge.name === null)).toBe(true);
-    expect(tall.lines.flatMap((s) => s.stopLabels)).toHaveLength(0);
+  it('names every stop it ticks', () => {
+    for (const shape of shapes.lines) {
+      expect(shape.stopLabels.map((l) => l.text)).toStrictEqual(
+        shape.ticks.map((t) => t.key)
+      );
+    }
   });
 
   it('wraps each interchange capsule around the rows of the lines it joins', () => {
-    for (const shape of mapShapes(network, 'horizontal').interchanges) {
+    for (const shape of shapes.interchanges) {
       const rows = shape.interchange.lines.map(
         (id) => lines.find((l) => l.id === id)?.y ?? Number.NaN
       );
@@ -118,19 +112,21 @@ describe('mapShapes', () => {
         { x: 500, label: 'B', detail: '', terminus: true },
       ],
     });
-    const [shape] = mapShapes(
-      { lines: [straight], interchanges: [], nextStop },
-      'horizontal'
-    ).lines;
+    const [shape] = mapShapes({
+      lines: [straight],
+      interchanges: [],
+      nextStop,
+    }).lines;
     expect(shape?.path).toBe('M 180 100 L 500 100');
   });
 
   it('skips a line with nothing to draw', () => {
-    const shapes = mapShapes(
-      { lines: [line({ stations: [] })], interchanges: [], nextStop },
-      'horizontal'
-    );
-    expect(shapes.lines).toHaveLength(0);
+    const empty = mapShapes({
+      lines: [line({ stations: [] })],
+      interchanges: [],
+      nextStop,
+    });
+    expect(empty.lines).toHaveLength(0);
   });
 });
 
