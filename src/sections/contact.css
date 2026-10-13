@@ -1,0 +1,83 @@
+.end {
+  margin-top: clamp(80px, 12vw, 160px);
+  padding-bottom: clamp(56px, 8vw, 104px);
+}
+
+.end-track {
+  display: block;
+  width: 100%;
+  height: 40px;
+  margin-bottom: clamp(24px, 4vw, 40px);
+  overflow: visible;
+}
+
+.end-track-built {
+  stroke: var(--ink);
+  stroke-width: 10;
+}
+
+.end-track-planned {
+  stroke: var(--signal);
+  stroke-width: 6;
+  stroke-dasharray: 10 8;
+}
+
+.end-track-terminus {
+  fill: var(--signal);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .end-track-planned {
+    animation: march 900ms linear infinite;
+  }
+}
+
+.end h2 {
+  font-family: var(--display);
+  font-size: clamp(3.5rem, 9vw, 6rem);
+  font-weight: 900;
+  line-height: 0.86;
+  text-transform: uppercase;
+}
+
+.end-lede {
+  margin-top: 18px;
+  color: var(--ink-2);
+  font-size: 1.125rem;
+}
+
+.end-email {
+  display: block;
+  width: fit-content;
+  margin-top: clamp(28px, 4vw, 44px);
+  font-family: var(--display);
+  font-size: clamp(2.25rem, 4.2vw, 4rem);
+  font-weight: 800;
+  line-height: 1;
+  overflow-wrap: break-word;
+  text-decoration-thickness: 0.06em;
+  text-decoration-color: var(--signal);
+  text-underline-offset: 0.12em;
+}
+
+.end-email:hover {
+  text-decoration-color: var(--ink);
+}
+
+.end-links {
+  margin-top: 28px;
+  font-weight: 700;
+}
+
+.end-body {
+  display: grid;
+  grid-template-columns: minmax(0, 6fr) minmax(0, 5fr);
+  gap: 40px 64px;
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .end-body {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

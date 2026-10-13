@@ -1,0 +1,45 @@
+.tw {
+  position: relative;
+}
+
+/* Untyped characters keep their space so nothing reflows, and only hide when typing will run. */
+html.typing .tw[data-state='waiting'] .tw-ghost,
+html.typing .tw[data-state='typing'] .tw-ghost {
+  color: transparent;
+  /* Safety net: if hydration never happens, the text shows anyway. */
+  animation: tw-reveal 0s 8s forwards;
+}
+
+@keyframes tw-reveal {
+  to {
+    color: inherit;
+  }
+}
+
+/* A terminal block cursor. */
+.tw-cursor {
+  display: inline-block;
+  width: 0.55em;
+  height: 0.9em;
+  margin-left: 0.04em;
+  margin-right: -0.59em;
+  vertical-align: -0.08em;
+  background: currentColor;
+  animation: tw-blink 1.05s steps(1) infinite;
+}
+
+.tw[data-state='typing'] .tw-cursor {
+  animation: none;
+}
+
+@keyframes tw-blink {
+  50% {
+    opacity: 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tw-cursor {
+    display: none;
+  }
+}

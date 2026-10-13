@@ -7,10 +7,19 @@
     "node": "24.x"
   },
   "scripts": {
+    "prepare": "husky",
     "dev": "next dev",
+    "prebuild": "node -e \"require('node:fs').rmSync('.next/cache/fetch-cache',{recursive:true,force:true})\"",
     "build": "next build",
-    "start": "npx serve@latest out",
-    "typecheck": "tsc --noEmit"
+    "start": "serve out",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "knip": "knip --no-config-hints",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "validate": "npm run format:check && npm run lint && npm run typecheck && npm run knip && npm test && npm run build && npm run test:e2e"
   },
   "dependencies": {
     "next": "16.3.8",
@@ -18,9 +27,37 @@
     "react-dom": "19.3.0"
   },
   "devDependencies": {
-    "@types/node": "^22",
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^24.19.2",
     "@types/react": "^19",
     "@types/react-dom": "^19",
-    "typescript": "^5"
+    "@vitest/eslint-plugin": "^1.6.27",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-check-file": "^3.3.2",
+    "eslint-plugin-import-x": "^4.17.1",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-regexp": "^3.3.1",
+    "eslint-plugin-sonarjs": "^4.2.2",
+    "eslint-plugin-unicorn": "^64.0.0",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "husky": "^9.1.7",
+    "knip": "^5.88.1",
+    "lint-staged": "^16.4.0",
+    "prettier": "~3.9.0",
+    "serve": "14.2.6",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^4.1.11"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,mts,mjs}": [
+      "eslint --fix",
+      "prettier --write"
+    ],
+    "*.{css,json,md,yml,yaml}": "prettier --write"
   }
 }
