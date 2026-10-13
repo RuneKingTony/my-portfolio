@@ -1,0 +1,57 @@
+.gh-card {
+  display: grid;
+  grid-template-columns: 72px minmax(0, 1fr);
+  gap: 4px 18px;
+  align-items: center;
+  padding: 18px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--ground-2);
+  text-decoration: none;
+  transition: border-color 200ms var(--ease-out);
+}
+
+.gh-card:hover {
+  border-color: var(--ink-3);
+}
+
+.gh-card img {
+  grid-row: span 2;
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  border: 2px solid var(--rule);
+  background: var(--zone);
+}
+
+.gh-card-text {
+  display: grid;
+  gap: 2px;
+}
+
+.gh-card-name {
+  font-family: var(--display);
+  font-size: 1.75rem;
+  font-weight: 800;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.gh-card-handle,
+.gh-card-meta {
+  font-size: 0.9375rem;
+  color: var(--ink-3);
+}
+
+.gh-card-cta {
+  font-size: 0.9375rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 0.22em;
+  text-decoration-color: var(--dim-text);
+}
+
+.gh-card:hover .gh-card-cta {
+  text-decoration-color: var(--ink);
+}

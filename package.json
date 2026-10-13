@@ -1,44 +1,63 @@
 {
-  "name": "frontend_react",
-  "version": "0.1.0",
+  "name": "anthony-nkwa-portfolio",
+  "version": "2.0.0",
   "private": true,
-  "dependencies": {
-    "@sanity/client": "^6.1.2",
-    "@sanity/image-url": "^1.0.2",
-    "@testing-library/jest-dom": "^5.16.5",
-    "@testing-library/react": "^13.4.0",
-    "@testing-library/user-event": "^13.5.0",
-    "framer-motion": "^10.12.16",
-    "node-sass": "^7.0.3",
-    "react": "^18.2.0",
-    "react-dom": "^18.2.0",
-    "react-icons": "^4.9.0",
-    "react-scripts": "5.0.1",
-    "react-tooltip": "^5.14.0",
-    "web-vitals": "^2.1.4"
+  "type": "module",
+  "engines": {
+    "node": "24.x"
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
-    "test": "react-scripts test",
-    "eject": "react-scripts eject"
+    "prepare": "husky",
+    "dev": "next dev",
+    "prebuild": "node -e \"require('node:fs').rmSync('.next/cache/fetch-cache',{recursive:true,force:true})\"",
+    "build": "next build",
+    "start": "serve out",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint .",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "knip": "knip --no-config-hints",
+    "test": "vitest run",
+    "test:e2e": "playwright test",
+    "validate": "npm run format:check && npm run lint && npm run typecheck && npm run knip && npm test && npm run build && npm run test:e2e"
   },
-  "eslintConfig": {
-    "extends": [
-      "react-app",
-      "react-app/jest"
-    ]
+  "dependencies": {
+    "next": "16.3.8",
+    "react": "19.3.0",
+    "react-dom": "19.3.0"
   },
-  "browserslist": {
-    "production": [
-      ">0.2%",
-      "not dead",
-      "not op_mini all"
+  "devDependencies": {
+    "@playwright/test": "^1.64.0",
+    "@types/node": "^24.19.2",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "@vitest/eslint-plugin": "^1.6.27",
+    "eslint": "^9.39.5",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.5",
+    "eslint-plugin-check-file": "^3.3.2",
+    "eslint-plugin-import-x": "^4.17.1",
+    "eslint-plugin-jsx-a11y": "^6.10.2",
+    "eslint-plugin-react": "^7.37.5",
+    "eslint-plugin-react-hooks": "^7.1.1",
+    "eslint-plugin-regexp": "^3.3.1",
+    "eslint-plugin-sonarjs": "^4.2.2",
+    "eslint-plugin-unicorn": "^64.0.0",
+    "eslint-plugin-unused-imports": "^4.4.1",
+    "husky": "^9.1.7",
+    "knip": "^5.88.1",
+    "lint-staged": "^16.4.0",
+    "prettier": "~3.9.0",
+    "serve": "14.2.6",
+    "typescript": "~5.9.3",
+    "typescript-eslint": "^8.71.2",
+    "vitest": "^4.1.11"
+  },
+  "lint-staged": {
+    "*.{ts,tsx,mts,mjs}": [
+      "eslint --fix",
+      "prettier --write"
     ],
-    "development": [
-      "last 1 chrome version",
-      "last 1 firefox version",
-      "last 1 safari version"
-    ]
+    "*.{css,json,md,yml,yaml}": "prettier --write"
   }
 }

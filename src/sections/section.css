@@ -1,0 +1,39 @@
+/* What every page section shares: the column and its heading. */
+
+.about,
+.history-section,
+.github,
+.lines,
+.end {
+  max-width: var(--max);
+  margin: 0 auto;
+  padding: 0 var(--gutter);
+}
+
+.section-head {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 12px 48px;
+  align-items: end;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--rule);
+}
+
+.section-head h2 {
+  font-family: var(--display);
+  font-size: clamp(3rem, 7vw, 5.5rem);
+  line-height: 0.88;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.section-head p {
+  color: var(--ink-2);
+  max-width: 60ch;
+}
+
+@media (max-width: 900px) {
+  .section-head {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

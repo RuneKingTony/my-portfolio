@@ -1,0 +1,11 @@
+.footer {
+  border-top: 1px solid var(--rule);
+  padding: 18px var(--gutter);
+  font-size: 0.875rem;
+  color: var(--ink-3);
+}
+
+.footer p {
+  max-width: calc(var(--max) - 2 * var(--gutter));
+  margin: 0 auto;
+}

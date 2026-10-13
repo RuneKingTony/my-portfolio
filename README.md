@@ -1,70 +1,69 @@
-# Getting Started with Create React App
+# Anthony Nkwa — portfolio
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+A one-page portfolio drawn as a night transit map: each body of work is a line from data
+to interface, each station a real component, each interchange a technology the lines share.
+Text types itself like a terminal, a split-flap departure board flips into place, and a
+dashed red extension marches to the next stop. Everything settles to a still map under `prefers-reduced-motion`.
 
-## Available Scripts
+Next.js (App Router) + strict TypeScript, exported as static files. No CMS, no runtime
+secrets.
 
-In the project directory, you can run:
+## Run it
 
-### `npm start`
+Node 24 (see `.nvmrc`).
 
-Runs the app in the development mode.\
-Open [http://localhost:3000](http://localhost:3000) to view it in your browser.
+```bash
+npm install
+npm run dev        # http://localhost:3000
+npm run build      # static site in out/
+npm start          # serve out/ locally
+npm run validate   # every check CI runs: format, lint, types, knip, tests, build, e2e
+```
 
-The page will reload when you make changes.\
-You may also see any lint errors in the console.
+GitHub repos and live-site links are fetched and checked when the site is built, so a
+push (which rebuilds the site) refreshes them. `prebuild` clears Next's fetch cache so a
+build never reuses an earlier build's responses.
 
-### `npm test`
+Deploy `out/` to any static host (Vercel, Netlify, Cloudflare Pages, S3).
 
-Launches the test runner in the interactive watch mode.\
-See the section about [running tests](https://facebook.github.io/create-react-app/docs/running-tests) for more information.
+## Edit the content
 
-### `npm run build`
+Each line of work has its own file in [`src/content/lines/`](src/content/lines/): its
+stations, stack, summary, Experience entry and screenshots. The shapes are in
+[`src/content/types.ts`](src/content/types.ts), and
+[`src/content/network.ts`](src/content/network.ts) puts the lines together with the
+interchanges (shared tech) and the next stop. Contact details are in
+`src/content/contact.ts`.
 
-Builds the app for production to the `build` folder.\
-It correctly bundles React in production mode and optimizes the build for the best performance.
+Map positions are in map units (`COL` in `src/content/map.ts` for x, each line's `y`).
+A `route` gives a line's track as points (90° and 45° moves only), and a station off
+the main row takes its own `y`.
 
-The build is minified and the filenames include the hashes.\
-Your app is ready to be deployed!
+Screenshots live in `public/work/`. A shot listed in a line file ships only if its file
+exists there at build time (e.g. `public/work/mbas.webp`).
 
-See the section about [deployment](https://facebook.github.io/create-react-app/docs/deployment) for more information.
+## Layout
 
-### `npm run eject`
+- `src/app/` — the root layout, `globals.css` (tokens, themes and base styles only) and
+  `page.tsx`, which only puts the sections in order
+- `src/sections/` — one file per page section (header, hero, about, experience,
+  projects, GitHub, contact, footer), each with its own `.css`
+- `src/features/` — the pieces the sections are built from, each a folder with its
+  components and their `.css`:
+  - `network-map/` — the map (horizontal on desktop, vertical under 720px) and its key
+  - `departure-board/` — the split-flap board (one row per line, plus "your team")
+  - `line-section/` — one line, drawn as a carriage strip map; `reveal.tsx` rides it
+    with the scroll
+  - `service-history/` — the Experience list
+  - `github/` — the profile card and public repos, fetched at build time
+  - `contact/` — the contact form and the mailto it builds
+  - `typewriter/` — text that types itself in
+  - `theme/` — the day/night switch
+- `src/content/` — everything the page says
+- `src/lib/` — dates, live-link checks and the in-view hook
 
-**Note: this is a one-way operation. Once you `eject`, you can't go back!**
-
-If you aren't satisfied with the build tool and configuration choices, you can `eject` at any time. This command will remove the single build dependency from your project.
-
-Instead, it will copy all the configuration files and the transitive dependencies (webpack, Babel, ESLint, etc) right into your project so you have full control over them. All of the commands except `eject` will still work, but they will point to the copied scripts so you can tweak them. At this point you're on your own.
-
-You don't have to ever use `eject`. The curated feature set is suitable for small and middle deployments, and you shouldn't feel obligated to use this feature. However we understand that this tool wouldn't be useful if you couldn't customize it when you are ready for it.
-
-## Learn More
-
-You can learn more in the [Create React App documentation](https://facebook.github.io/create-react-app/docs/getting-started).
-
-To learn React, check out the [React documentation](https://reactjs.org/).
-
-### Code Splitting
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/code-splitting](https://facebook.github.io/create-react-app/docs/code-splitting)
-
-### Analyzing the Bundle Size
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size](https://facebook.github.io/create-react-app/docs/analyzing-the-bundle-size)
-
-### Making a Progressive Web App
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app](https://facebook.github.io/create-react-app/docs/making-a-progressive-web-app)
-
-### Advanced Configuration
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/advanced-configuration](https://facebook.github.io/create-react-app/docs/advanced-configuration)
-
-### Deployment
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/deployment](https://facebook.github.io/create-react-app/docs/deployment)
-
-### `npm run build` fails to minify
-
-This section has moved here: [https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify](https://facebook.github.io/create-react-app/docs/troubleshooting#npm-run-build-fails-to-minify)
+Files and folders are kebab-case, with named exports only (Next.js's own `layout.tsx`
+and `page.tsx` are the exceptions). Unit specs sit beside the code they test
+(`*.spec.ts`), and `e2e/` holds a Playwright smoke test of the built site. The full set of
+rules, and which check enforces each one, is in
+[`docs/conventions.md`](docs/conventions.md).

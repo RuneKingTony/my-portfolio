@@ -1,0 +1,173 @@
+/* The board is a black object whatever the theme, so it keeps the night colours. */
+.board-panel {
+  --l-gvr: #7f9bd8;
+  --l-fin: #6db3aa;
+  --l-edu: #86b98e;
+  --l-anc: #d2b26a;
+  --l-mt5: #a596cf;
+  --l-pha: #cf93ac;
+  --l-ecm: #cf9b70;
+  --signal: #ff4d3d;
+  --ink-3: #8b919b;
+  --rule: #252931;
+}
+
+.board-panel {
+  margin: 0;
+  padding: 14px 16px 10px;
+  background: var(--panel);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  --tile-w: 19px;
+  --tile-h: 27px;
+  --tile-font: 14px;
+}
+
+.board-head {
+  display: flex;
+  justify-content: space-between;
+  padding-bottom: 10px;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-3);
+}
+
+.flap-table {
+  border-collapse: collapse;
+}
+
+.flap-table th,
+.flap-table td {
+  padding: 4px 0;
+  border-top: 1px solid #16191e;
+}
+
+.flap-table th {
+  padding-right: 12px;
+}
+
+.flap-status {
+  padding-left: 10px !important;
+}
+
+.flap-code {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 52px;
+  height: 22px;
+  padding: 1px 8px 0 7px;
+  background: #1d2025;
+  color: #d7dade;
+  font-family: var(--mono);
+  font-size: 0.6875rem;
+  font-weight: 800;
+  border-radius: 11px;
+}
+
+.flap-table tr[data-next] .flap-code {
+  background: var(--signal);
+  color: #0a0b0d;
+}
+
+.tiles {
+  display: flex;
+  gap: 2px;
+}
+
+.tile {
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: var(--tile-w);
+  height: var(--tile-h);
+  background: var(--tile);
+  border-radius: 2px;
+  color: #eceef1;
+  font-family: var(--mono);
+  font-size: var(--tile-font);
+  font-weight: 600;
+  line-height: 1;
+  white-space: pre;
+}
+
+/* The split between the two flap halves. */
+.tile::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: 50%;
+  height: 1px;
+  background: #000;
+}
+
+.flap-status .tile {
+  color: var(--ink-3);
+}
+
+.flap-table tr[data-next] .tile {
+  color: var(--signal);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .flap-table tr[data-next] .flap-status .tiles {
+    animation: board-blink 1.6s steps(1) 3s infinite;
+  }
+}
+
+@keyframes board-blink {
+  50% {
+    opacity: 0.25;
+  }
+}
+
+@media (max-width: 560px) {
+  .board-panel {
+    width: 100%;
+    padding: 12px 12px 8px;
+    --tile-w: calc((100vw - 2 * var(--gutter) - 24px - 60px - 13px) / 14);
+    --tile-h: 24px;
+    --tile-font: 12px;
+  }
+
+  .flap-table,
+  .flap-table tbody {
+    display: block;
+  }
+
+  .flap-table tr {
+    display: grid;
+    grid-template-columns: 52px auto;
+    column-gap: 8px;
+    padding: 6px 0;
+    border-top: 1px solid #16191e;
+  }
+
+  .flap-table th,
+  .flap-table td {
+    padding: 0;
+    border: 0;
+  }
+
+  .flap-table th {
+    grid-row: span 2;
+    padding-right: 0;
+  }
+
+  .flap-status {
+    grid-column: 2;
+    padding: 3px 0 0 !important;
+  }
+
+  .tiles {
+    gap: 1px;
+  }
+
+  .flap-code {
+    min-width: 46px;
+  }
+}
