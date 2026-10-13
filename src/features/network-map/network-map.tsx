@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState, type RefObject } from 'react';
 import {
   chronological,
   interchangeById,
@@ -25,17 +25,13 @@ import {
   type InterchangeShape,
   type LineShape,
   type MapShapes,
-  type Orientation,
   type TextAt,
 } from './map-geometry';
 import './network-map.css';
 
 const network = { lines, interchanges, nextStop };
 // The content is fixed at build time, so the shapes are worked out once.
-const SHAPES: Record<Orientation, MapShapes> = {
-  horizontal: mapShapes(network, 'horizontal'),
-  vertical: mapShapes(network, 'vertical'),
-};
+const SHAPES = mapShapes(network);
 const { title, description } = describeNetwork(network);
 
 interface DrawKey {
@@ -65,7 +61,16 @@ export function NetworkMap() {
   const networkRef = useRef<HTMLDivElement>(null);
   // The network draws itself in again on every visit.
   const inView = useInView(networkRef, 0.2);
+  const frameRef = useRef<HTMLDivElement>(null);
   const { focus, locked, toggle, setPreview, drawKey } = useMapFocus();
+  const scroll = useSideScroll(frameRef);
+
+  // On a phone the chosen line may be off screen, so bring its start into view.
+  useEffect(() => {
+    if (locked?.kind !== 'line') return;
+    const start = SHAPES.lines.find((s) => s.line.id === locked.id);
+    if (start) scroll.reveal(start.badge.name.x - 160);
+  }, [locked, scroll]);
 
   return (
     <div
@@ -77,8 +82,27 @@ export function NetworkMap() {
         Each coloured line is one project. Follow it from data to screens.
         Shared tools sit where lines cross.
       </p>
-      <MapSvg orientation="horizontal" focus={focus} drawKey={drawKey} />
-      <MapSvg orientation="vertical" focus={focus} drawKey={drawKey} />
+      <div
+        className="map-frame"
+        ref={frameRef}
+        data-at-end={scroll.atEnd}
+        // Scrollable regions need keyboard focus so arrow keys can pan them.
+        tabIndex={scroll.pages > 1 ? 0 : -1}
+        role="region"
+        aria-label="Network map"
+      >
+        <MapSvg focus={focus} drawKey={drawKey} />
+      </div>
+      {scroll.pages > 1 ? (
+        <p className="map-swipe" data-moved={scroll.moved}>
+          <span>Swipe to explore the map</span>
+          <span className="map-dots" aria-hidden="true">
+            {Array.from({ length: scroll.pages }, (_, i) => (
+              <span key={i} data-on={i === scroll.page} />
+            ))}
+          </span>
+        </p>
+      ) : null}
       <div className="map-key">
         <LineKey locked={locked} onToggle={toggle} onPreview={setPreview} />
         <InterchangeKey
@@ -94,22 +118,65 @@ export function NetworkMap() {
   );
 }
 
-function MapSvg({
-  orientation,
-  focus,
-  drawKey,
-}: {
-  orientation: Orientation;
-  focus: Focus;
-  drawKey: DrawKey;
-}) {
-  const shapes = SHAPES[orientation];
-  const titleId = `map-title-${orientation}`;
-  const descId = `map-desc-${orientation}`;
+interface SideScroll {
+  /** How many screen-widths the map spans; 1 when it fits. */
+  pages: number;
+  page: number;
+  moved: boolean;
+  atEnd: boolean;
+  /** Scroll so a map x position sits at the left edge. */
+  reveal: (mapX: number) => void;
+}
+
+/** Tracks a sideways-scrolling frame: which screen-width is showing and whether the reader has panned yet. */
+function useSideScroll(ref: RefObject<HTMLDivElement | null>): SideScroll {
+  const [state, setState] = useState({
+    pages: 1,
+    page: 0,
+    moved: false,
+    atEnd: false,
+  });
+  const [reveal] = useState(() => (mapX: number) => {
+    const frame = ref.current;
+    if (!frame || frame.scrollWidth <= frame.clientWidth) return;
+    const scale = frame.scrollWidth / SHAPES.width;
+    frame.scrollTo({ left: Math.max(0, mapX * scale), behavior: 'smooth' });
+  });
+
+  useEffect(() => {
+    const frame = ref.current;
+    if (!frame) return;
+    const measure = () => {
+      const { scrollLeft, scrollWidth, clientWidth } = frame;
+      const pages = Math.max(1, Math.round(scrollWidth / clientWidth));
+      const max = scrollWidth - clientWidth;
+      setState((prev) => ({
+        pages,
+        page: max > 0 ? Math.round((scrollLeft / max) * (pages - 1)) : 0,
+        moved: prev.moved || scrollLeft > 8,
+        atEnd: scrollLeft >= max - 8,
+      }));
+    };
+    measure();
+    frame.addEventListener('scroll', measure, { passive: true });
+    window.addEventListener('resize', measure);
+    return () => {
+      frame.removeEventListener('scroll', measure);
+      window.removeEventListener('resize', measure);
+    };
+  }, [ref]);
+
+  return { ...state, reveal };
+}
+
+function MapSvg({ focus, drawKey }: { focus: Focus; drawKey: DrawKey }) {
+  const shapes = SHAPES;
+  const titleId = 'map-title';
+  const descId = 'map-desc';
 
   return (
     <svg
-      className={`map map-${orientation}`}
+      className="map"
       viewBox={shapes.viewBox}
       role="img"
       aria-labelledby={`${titleId} ${descId}`}
@@ -117,7 +184,7 @@ function MapSvg({
     >
       <title id={titleId}>{title}</title>
       <desc id={descId}>{description}</desc>
-      <MapBackdrop orientation={orientation} shapes={shapes} />
+      <MapBackdrop shapes={shapes} />
       {shapes.lines.map((shape) => (
         <MapLine
           key={shape.line.id}
@@ -139,13 +206,7 @@ function MapSvg({
 }
 
 /** The zones, the grid and the separator: everything under the lines. */
-function MapBackdrop({
-  orientation,
-  shapes,
-}: {
-  orientation: Orientation;
-  shapes: MapShapes;
-}) {
+function MapBackdrop({ shapes }: { shapes: MapShapes }) {
   const { from, to, note } = shapes.separator;
   return (
     <>
@@ -163,7 +224,7 @@ function MapBackdrop({
           />
         </g>
       ))}
-      <Grid id={`grid-${orientation}`} shapes={shapes} />
+      <Grid id="map-grid" shapes={shapes} />
       <line
         className="map-separator"
         x1={from[0]}
@@ -244,9 +305,7 @@ function MapLine({
         >
           {line.code}
         </text>
-        {badge.name ? (
-          <Label at={badge.name} text={line.name} className="map-line-name" />
-        ) : null}
+        <Label at={badge.name} text={line.name} className="map-line-name" />
       </a>
     </g>
   );

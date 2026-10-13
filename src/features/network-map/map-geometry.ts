@@ -1,4 +1,4 @@
-// Turns the network into the shapes the map draws, for one orientation. Pure:
+// Turns the network into the shapes the map draws. Pure:
 // no React and no DOM, so the map's layout can be tested on its own.
 
 import { zones, type MapPoint } from '@/content/map';
@@ -9,8 +9,6 @@ import type {
   NextStop,
   Station,
 } from '@/content/types';
-
-export type Orientation = 'horizontal' | 'vertical';
 
 interface Network {
   lines: readonly Line[];
@@ -53,7 +51,7 @@ export interface LineShape {
   path: string;
   ticks: { key: string; box: Box }[];
   stopLabels: (Label & { key: string })[];
-  badge: { pill: Box; code: TextAt; name: TextAt | null };
+  badge: { pill: Box; code: TextAt; name: TextAt };
 }
 
 export interface InterchangeShape {
@@ -81,59 +79,31 @@ export interface MapShapes {
   interchanges: InterchangeShape[];
 }
 
-// The network is authored once, in horizontal map units. The vertical map (phones)
-// is the same network turned a quarter: one uniform scale keeps every 45° move at 45°.
+// Map units: the viewBox is 1440 × 712, and phones scroll it sideways at full size.
 const NETWORK_TOP = 40;
 const NETWORK_BOTTOM = 562;
 const SEPARATOR_Y = 588;
-const V_SCALE = 0.5;
-const V_BOT_X = 374;
-const V_SEPARATOR_X = 346;
 
-/** Everything that differs between the two orientations, in one place. */
-interface Geometry {
-  viewBox: string;
-  width: number;
-  height: number;
-  gridStep: number;
-  project: (line: LineId, point: MapPoint) => MapPoint;
-  tick: (point: MapPoint, terminus: boolean) => Box;
-  /** Where a stop's name goes, or null when the orientation has no room for names. */
-  stopLabel: (point: MapPoint, terminus: boolean) => TextAt | null;
-  badge: (start: MapPoint) => LineShape['badge'];
-  interchange: (points: MapPoint[]) => { capsule: Box; name: TextAt };
-  zone: (
-    zone: (typeof zones)[number],
-    index: number
-  ) => { band: Box; name: TextAt; text: string };
-  separator: MapShapes['separator'];
-  extensionEnd: (
-    end: MapPoint,
-    nextStopLabel: string
-  ) => { tick: Box; label: Label };
-}
-
-const horizontal: Geometry = {
+const GEO = {
   viewBox: '0 0 1440 712',
   width: 1440,
   height: 712,
   gridStep: 40,
-  project: (_line, point) => point,
-  tick: ([x, y], terminus) =>
+  tick: ([x, y]: MapPoint, terminus: boolean): Box =>
     terminus
       ? { x: x - 3, y: y - 15, width: 6, height: 30 }
       : { x: x - 3, y: y + 4, width: 6, height: 10 },
-  stopLabel: ([x, y], terminus) => ({
+  stopLabel: ([x, y]: MapPoint, terminus: boolean): TextAt => ({
     x,
     y: y + (terminus ? 36 : 32),
     anchor: 'middle',
   }),
-  badge: ([x, y]) => ({
+  badge: ([x, y]: MapPoint): LineShape['badge'] => ({
     pill: { x: x - 42, y: y - 11, width: 40, height: 22 },
     code: { x: x - 22, y: y + 5, anchor: 'middle' },
     name: { x: x - 50, y: y + 5, anchor: 'end' },
   }),
-  interchange: (points) => {
+  interchange: (points: MapPoint[]): { capsule: Box; name: TextAt } => {
     const [x] = points[0] ?? [0, 0];
     const top = Math.min(...points.map(([, y]) => y));
     const bottom = Math.max(...points.map(([, y]) => y));
@@ -142,7 +112,10 @@ const horizontal: Geometry = {
       name: { x, y: top - 26, anchor: 'middle' },
     };
   },
-  zone: (zone, index) => ({
+  zone: (
+    zone: (typeof zones)[number],
+    index: number
+  ): { band: Box; name: TextAt; text: string } => ({
     band: {
       x: zone.from,
       y: NETWORK_TOP,
@@ -159,72 +132,15 @@ const horizontal: Geometry = {
       at: { x: 1400, y: SEPARATOR_Y + 22, anchor: 'end' },
       text: 'Not a web app, so it sits outside the zones: these stops are the steps I took, in order',
     },
-  },
-  extensionEnd: ([x, y], nextStopLabel) => ({
+  } satisfies MapShapes['separator'],
+  extensionEnd: (
+    [x, y]: MapPoint,
+    text: string
+  ): { tick: Box; label: Label } => ({
     tick: { x: x - 3, y: y - 15, width: 6, height: 30 },
-    label: { at: { x, y: y + 36, anchor: 'middle' }, text: nextStopLabel },
+    label: { at: { x, y: y + 36, anchor: 'middle' }, text },
   }),
 };
-
-const vertical: Geometry = {
-  viewBox: '0 0 400 700',
-  width: 400,
-  height: 700,
-  gridStep: 25,
-  project: (line, [x, y]) => [
-    line === 'mt5' ? V_BOT_X : 130 + (y - 120) * V_SCALE,
-    (x - 100) * V_SCALE,
-  ],
-  tick: ([x, y], terminus) =>
-    terminus
-      ? { x: x - 13, y: y - 3, width: 26, height: 6 }
-      : { x: x + 4, y: y - 3, width: 8, height: 6 },
-  stopLabel: () => null,
-  badge: ([x, y]) => ({
-    pill: { x: x - 20, y: y - 24, width: 40, height: 22 },
-    code: { x, y: y - 8, anchor: 'middle' },
-    name: null,
-  }),
-  interchange: (points) => {
-    const [, y] = points[0] ?? [0, 0];
-    const left = Math.min(...points.map(([x]) => x));
-    const right = Math.max(...points.map(([x]) => x));
-    return {
-      capsule: {
-        x: left - 13,
-        y: y - 13,
-        width: right - left + 26,
-        height: 26,
-      },
-      name: { x: left - 22, y: y + 5, anchor: 'end' },
-    };
-  },
-  zone: (zone, index) => {
-    const top = (zone.from - 100) * V_SCALE;
-    return {
-      band: {
-        x: 0,
-        y: top,
-        width: V_SEPARATOR_X - 10,
-        height: (zone.to - zone.from) * V_SCALE,
-      },
-      // Names sit just above their band so they never meet an interchange name inside it.
-      name: { x: 8, y: index === 0 ? top + 16 : top - 6 },
-      text: zone.name,
-    };
-  },
-  separator: {
-    from: [V_SEPARATOR_X, 8],
-    to: [V_SEPARATOR_X, 692],
-    note: { at: { x: V_BOT_X, y: 692, anchor: 'middle' }, text: 'MQL5' },
-  },
-  extensionEnd: ([x, y]) => ({
-    tick: { x: x - 13, y: y - 3, width: 26, height: 6 },
-    label: { at: { x, y: y + 22, anchor: 'middle' }, text: 'Your team' },
-  }),
-};
-
-const GEOMETRY: Record<Orientation, Geometry> = { horizontal, vertical };
 
 /** An SVG path through the given points. */
 const toPath = (points: MapPoint[]): string =>
@@ -251,8 +167,8 @@ const lineById = (network: Network, id: LineId): Line => {
 
 const isTerminus = (station: Station) => station.terminus === true;
 
-function lineShape(geo: Geometry, line: Line, index: number): LineShape | null {
-  const route = routeOf(line).map((p) => geo.project(line.id, p));
+function lineShape(line: Line, index: number): LineShape | null {
+  const route = routeOf(line);
   const start = route[0];
   if (!start) return null;
   // Interchanges are drawn as capsules across lines, not as ticks on one.
@@ -260,7 +176,7 @@ function lineShape(geo: Geometry, line: Line, index: number): LineShape | null {
     .filter((s) => s.interchange === undefined)
     .map((s) => ({
       station: s,
-      at: geo.project(line.id, [s.x, s.y ?? line.y]),
+      at: [s.x, s.y ?? line.y] satisfies MapPoint,
     }));
   return {
     line,
@@ -268,27 +184,26 @@ function lineShape(geo: Geometry, line: Line, index: number): LineShape | null {
     path: toPath(route),
     ticks: stops.map(({ station, at }) => ({
       key: station.label,
-      box: geo.tick(at, isTerminus(station)),
+      box: GEO.tick(at, isTerminus(station)),
     })),
-    stopLabels: stops.flatMap(({ station, at }) => {
-      const labelAt = geo.stopLabel(at, isTerminus(station));
-      return labelAt
-        ? [{ key: station.label, at: labelAt, text: station.label }]
-        : [];
-    }),
-    badge: geo.badge(start),
+    stopLabels: stops.map(({ station, at }) => ({
+      key: station.label,
+      at: GEO.stopLabel(at, isTerminus(station)),
+      text: station.label,
+    })),
+    badge: GEO.badge(start),
   };
 }
 
 function interchangeShape(
-  geo: Geometry,
   network: Network,
   interchange: Interchange
 ): InterchangeShape {
-  const points = interchange.lines.map((id) =>
-    geo.project(id, [interchange.x, lineById(network, id).y])
-  );
-  const { capsule, name } = geo.interchange(points);
+  const points = interchange.lines.map((id): MapPoint => [
+    interchange.x,
+    lineById(network, id).y,
+  ]);
+  const { capsule, name } = GEO.interchange(points);
   return {
     interchange,
     capsule,
@@ -297,29 +212,24 @@ function interchangeShape(
   };
 }
 
-function extensionShape(
-  geo: Geometry,
-  nextStop: NextStop
-): ExtensionShape | null {
-  const points = nextStop.route.map((p) => geo.project(nextStop.from, p));
-  const end = points.at(-1);
+function extensionShape(nextStop: NextStop): ExtensionShape | null {
+  const end = nextStop.route.at(-1);
   if (!end) return null;
-  return { path: toPath(points), ...geo.extensionEnd(end, nextStop.label) };
+  return {
+    path: toPath(nextStop.route),
+    ...GEO.extensionEnd(end, nextStop.label),
+  };
 }
 
-/** Everything the map draws in one orientation, in map units. */
-export function mapShapes(
-  network: Network,
-  orientation: Orientation
-): MapShapes {
-  const geo = GEOMETRY[orientation];
+/** Everything the map draws, in map units. */
+export function mapShapes(network: Network): MapShapes {
   return {
-    viewBox: geo.viewBox,
-    width: geo.width,
-    height: geo.height,
-    gridStep: geo.gridStep,
+    viewBox: GEO.viewBox,
+    width: GEO.width,
+    height: GEO.height,
+    gridStep: GEO.gridStep,
     zones: zones.map((zone, i) => {
-      const { band, name, text } = geo.zone(zone, i);
+      const { band, name, text } = GEO.zone(zone, i);
       return {
         key: zone.name,
         title: `${zone.name}: ${zone.means}`,
@@ -328,11 +238,11 @@ export function mapShapes(
         label: { at: name, text },
       };
     }),
-    separator: geo.separator,
-    lines: network.lines.flatMap((line, i) => lineShape(geo, line, i) ?? []),
-    extension: extensionShape(geo, network.nextStop),
+    separator: GEO.separator,
+    lines: network.lines.flatMap((line, i) => lineShape(line, i) ?? []),
+    extension: extensionShape(network.nextStop),
     interchanges: network.interchanges.map((ix) =>
-      interchangeShape(geo, network, ix)
+      interchangeShape(network, ix)
     ),
   };
 }
