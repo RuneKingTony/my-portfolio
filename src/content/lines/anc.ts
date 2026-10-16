@@ -105,11 +105,4 @@ export const anc: Line = {
       ],
     },
   ],
-  shots: [
-    {
-      src: '/work/anchorfit-revamp.webp',
-      alt: 'Anchor Fit storefront homepage',
-      caption: 'Anchor Fit storefront',
-    },
-  ],
 };

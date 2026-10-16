@@ -64,21 +64,4 @@ export const gvr: Line = {
       "Helped build the studio's own website.",
     ],
   },
-  shots: [
-    {
-      src: '/work/mbas.webp',
-      alt: 'MBAS Investment homepage',
-      caption: 'MBAS Investment',
-    },
-    {
-      src: '/work/valdin-energy.webp',
-      alt: 'Valdin Energy homepage',
-      caption: 'Valdin Energy',
-    },
-    {
-      src: '/work/amara-kharis.webp',
-      alt: 'Amara Kharis homepage',
-      caption: 'Amara Kharis',
-    },
-  ],
 };

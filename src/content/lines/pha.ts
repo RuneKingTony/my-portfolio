@@ -54,11 +54,4 @@ export const pha: Line = {
       ],
     },
   ],
-  shots: [
-    {
-      src: '/work/pharma-aid.webp',
-      alt: 'Pharma-AID Africa homepage',
-      caption: 'Pharma-AID Africa',
-    },
-  ],
 };

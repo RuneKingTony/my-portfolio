@@ -1,18 +1,10 @@
-import type { Line, Shot, Station } from '@/content/types';
+import type { Line, Station } from '@/content/types';
 import { Dotted } from './dotted';
 import { Reveal } from './reveal';
 import './line-section.css';
 
 /** One line of work: its plate on the left, its stops ridden as a strip on the right. */
-export function LineSection({
-  line,
-  shots,
-  live,
-}: {
-  line: Line;
-  shots: Shot[];
-  live: Set<string>;
-}) {
+export function LineSection({ line, live }: { line: Line; live: Set<string> }) {
   return (
     <article id={`line-${line.id}`} className="line-section">
       <LinePlate line={line} />
@@ -24,7 +16,6 @@ export function LineSection({
           ))}
         </ol>
       </Reveal>
-      <Shots shots={shots} />
     </article>
   );
 }
@@ -94,20 +85,5 @@ function Stop({
         </p>
       ) : null}
     </li>
-  );
-}
-
-function Shots({ shots }: { shots: Shot[] }) {
-  if (shots.length === 0) return null;
-  return (
-    <div className={shots.length === 1 ? 'shots shots-one' : 'shots'}>
-      {shots.map((shot) => (
-        <figure key={shot.src} className="shot">
-          {/* Static export serves these as-is; sizes come from the screenshots themselves. */}
-          <img src={shot.src} alt={shot.alt} loading="lazy" decoding="async" />
-          <figcaption>{shot.caption}</figcaption>
-        </figure>
-      ))}
-    </div>
   );
 }
