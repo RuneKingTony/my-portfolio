@@ -29,7 +29,7 @@ Deploy `out/` to any static host (Vercel, Netlify, Cloudflare Pages, S3).
 ## Edit the content
 
 Each line of work has its own file in [`src/content/lines/`](src/content/lines/): its
-stations, stack, summary, Experience entry and screenshots. The shapes are in
+stations, stack, summary, and Experience entry. The shapes are in
 [`src/content/types.ts`](src/content/types.ts), and
 [`src/content/network.ts`](src/content/network.ts) puts the lines together with the
 interchanges (shared tech) and the next stop. Contact details are in
@@ -38,9 +38,6 @@ interchanges (shared tech) and the next stop. Contact details are in
 Map positions are in map units (`COL` in `src/content/map.ts` for x, each line's `y`).
 A `route` gives a line's track as points (90° and 45° moves only), and a station off
 the main row takes its own `y`.
-
-Screenshots live in `public/work/`. A shot listed in a line file ships only if its file
-exists there at build time (e.g. `public/work/mbas.webp`).
 
 ## Layout
 

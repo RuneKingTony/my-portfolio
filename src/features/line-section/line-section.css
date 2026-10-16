@@ -262,39 +262,6 @@
   border-color: var(--dim);
 }
 
-/* Screenshots */
-
-.shots {
-  grid-column: 1 / -1;
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(100%, 300px), 1fr));
-  gap: 20px;
-}
-
-.shots-one {
-  grid-template-columns: minmax(0, 1fr);
-}
-
-.shot {
-  margin: 0;
-}
-
-.shot img {
-  display: block;
-  width: 100%;
-  height: auto;
-  border: 1px solid var(--rule);
-  border-radius: 6px;
-  background: var(--ground-2);
-}
-
-.shot figcaption {
-  margin-top: 8px;
-  font-size: 0.875rem;
-  font-weight: 700;
-  color: var(--ink-2);
-}
-
 /* A drawn dot: the faces' own "·" sits off-centre in its advance width. */
 .sep {
   display: inline-block;

@@ -21,12 +21,6 @@ export interface Station {
   links?: { label: string; href: string }[];
 }
 
-export interface Shot {
-  src: string;
-  alt: string;
-  caption: string;
-}
-
 export interface Service {
   /** What the work was, in a few words. Titles are descriptive, not employer job titles. */
   title: string;
@@ -52,7 +46,6 @@ export interface Line {
   stack: string[];
   summary: string;
   stations: Station[];
-  shots?: Shot[];
   service: Service;
 }
 
